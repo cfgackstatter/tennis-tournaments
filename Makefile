@@ -12,6 +12,11 @@ VENV := backend/venv
 PYTHON_VENV := $(VENV)/bin/python3
 # Prefer `python -m` so scripts keep working if the project directory is renamed
 PIP := $(PYTHON_VENV) -m pip
+# `make` runs recipes in /bin/sh, which often lacks ~/.local/bin from interactive PATH
+EB := $(firstword $(wildcard $(HOME)/.local/bin/eb) $(shell command -v eb 2>/dev/null))
+ifeq ($(EB),)
+EB := eb
+endif
 
 # ─── Setup ────────────────────────────────────────────────────────────────────
 
@@ -71,7 +76,7 @@ build:
 	cd frontend && npm run build
 
 deploy: clean build
-	eb deploy --timeout 30
+	$(EB) deploy --timeout 30
 
 # ─── Build, Deploy & Update ───────────────────────────────────────────────────
 
@@ -80,27 +85,27 @@ deploy-and-update: deploy update
 # ─── AWS EB ───────────────────────────────────────────────────────────────────
 
 status:
-	eb status
+	$(EB) status
 
 health:
-	eb health
+	$(EB) health
 
 logs:
-	eb logs
+	$(EB) logs
 
 ssh:
-	eb ssh
+	$(EB) ssh
 
 # ─── Manual update on server ──────────────────────────────────────────────────
 
 update-usta:
-	eb ssh --command "sudo bash /usr/local/bin/update_usta.sh"
+	$(EB) ssh --command "sudo bash /usr/local/bin/update_usta.sh"
 
 update-itf:
-	eb ssh --command "sudo bash /usr/local/bin/update_itf.sh"
+	$(EB) ssh --command "sudo bash /usr/local/bin/update_itf.sh"
 
 update-utr:
-	eb ssh --command "sudo bash /usr/local/bin/update_utr.sh"
+	$(EB) ssh --command "sudo bash /usr/local/bin/update_utr.sh"
 
 update: update-usta update-itf update-utr
 
@@ -112,7 +117,7 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 clean-remote-data:
-	eb ssh --command "sudo rm -f /var/app/shared/data/itf_tournaments.parquet /var/app/shared/data/usta_tournaments.parquet /var/app/shared/data/utr_tournaments.parquet && ls -l /var/app/shared/data || true"
+	$(EB) ssh --command "sudo rm -f /var/app/shared/data/itf_tournaments.parquet /var/app/shared/data/usta_tournaments.parquet /var/app/shared/data/utr_tournaments.parquet && ls -l /var/app/shared/data || true"
 
 # ─── Help ─────────────────────────────────────────────────────────────────────
 
